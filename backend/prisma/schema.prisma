@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+  AGENT
+  VENDOR
+}
+
+enum OrderType {
+  DELIVERY
+  DINE_IN
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED_BY_AGENT
+  PREPARING
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum AgentStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+model User {
+  id           String @id @default(uuid())
+  name         String
+  phone        String @unique
+  passwordHash String
+  roles        Role[] @default([USER])
+
+  // user specific
+  address String?
+
+  agent         Agent?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  vendorManaged   Vendor?  @relation("ManagerVendors")
+  ordersPlaced    Order[]  @relation("UserOrders")
+
+  ratingsGiven    Rating[] @relation("ReviewerRatings")
+  ratingsReceived Rating[] @relation("RevieweeRatings")
+}
+
+model Vendor {
+  id       String  @id @default(uuid())
+  name     String
+  location String
+  phone    String?
+
+  managerId String @unique
+  manager   User   @relation("ManagerVendors", fields: [managerId], references: [id])
+
+  meals  Meal[]
+  orders Order[]
+  agents Agent[] @relation("AgentVendors")
+
+  isApproved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id            String      @id @default(uuid())
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id])
+  
+  accountNumber String
+  workingHours  Json
+  isApproved    Boolean     @default(false)
+  status        AgentStatus @default(OFFLINE)
+  
+  vendors       Vendor[]    @relation("AgentVendors")
+  orders        Order[]     @relation("AgentOrders")
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Meal {
+  id                  String  @id @default(uuid())
+  name                String
+  imageUrl            String?
+  price               Float
+  isDeliveryAvailable Boolean @default(true)
+  isFreeDelivery      Boolean @default(false)
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  orderType OrderType   @default(DELIVERY)
+  status    OrderStatus @default(PENDING)
+
+  userId String
+  user   User   @relation("UserOrders", fields: [userId], references: [id])
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  agentId String?
+  agent   Agent?  @relation("AgentOrders", fields: [agentId], references: [id])
+
+  orderItems OrderItem[]
+  ratings    Rating[]
+
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  updatedAt  DateTime  @updatedAt
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id])
+
+  quantity Int   @default(1)
+  price    Float // Snapshot of the price at the time of order
+}
+
+model Rating {
+  id       String  @id @default(uuid())
+  score    Int // e.g. 1 to 5
+  comments String?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  reviewerId String
+  reviewer   User   @relation("ReviewerRatings", fields: [reviewerId], references: [id])
+
+  revieweeId String
+  reviewee   User   @relation("RevieweeRatings", fields: [revieweeId], references: [id])
+
+  createdAt DateTime @default(now())
+}
