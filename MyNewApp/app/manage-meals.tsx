@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { getApiErrorMessage } from '../lib/api-error';
 import { mealService } from '../services/meal.service';
+import { uploadService } from '../services/upload.service';
 import { vendorService } from '../services/vendor.service';
 import { useAuthStore } from '../store/authStore';
 import type { Vendor } from '../types/domain';
@@ -23,10 +25,11 @@ export default function ManageMealsScreen() {
   const [selectedVendorId, setSelectedVendorId] = useState<string>('');
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string>('');
   const [isDeliveryAvailable, setIsDeliveryAvailable] = useState(true);
   const [isFreeDelivery, setIsFreeDelivery] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!isAdmin && !isVendor) {
@@ -74,17 +77,22 @@ export default function ManageMealsScreen() {
 
     setSaving(true);
     try {
+      let imageUrl: string | undefined;
+      if (selectedImageUri) {
+        imageUrl = await uploadService.uploadImage(selectedImageUri);
+      }
+
       await mealService.createMeal({
         name,
         price: parsedPrice,
-        imageUrl: imageUrl || undefined,
+        imageUrl,
         isDeliveryAvailable,
         isFreeDelivery,
         vendorId: isAdmin ? selectedVendorId : undefined,
       });
       setName('');
       setPrice('');
-      setImageUrl('');
+      setSelectedImageUri('');
       setIsDeliveryAvailable(true);
       setIsFreeDelivery(false);
       Alert.alert('Success', 'Meal added successfully.');
@@ -92,6 +100,30 @@ export default function ManageMealsScreen() {
       Alert.alert('Error', getApiErrorMessage(error, 'Failed to add meal.'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const pickImageFromDevice = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Please allow media access to pick meal images.');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setSelectedImageUri(result.assets[0].uri);
+      }
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -143,7 +175,23 @@ export default function ManageMealsScreen() {
             <Input label="Price" placeholder="50" keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
           </View>
           <View className="mt-4">
-            <Input label="Image URL (Optional)" placeholder="https://..." value={imageUrl} onChangeText={setImageUrl} autoCapitalize="none" />
+            <Text className="text-sm font-semibold text-gray-700 mb-2">Meal Image (Optional)</Text>
+            <TouchableOpacity
+              className="border border-gray-200 rounded-xl p-4 bg-gray-50 items-center"
+              onPress={pickImageFromDevice}
+              disabled={uploadingImage}
+            >
+              {selectedImageUri ? (
+                <Image source={{ uri: selectedImageUri }} className="w-full h-40 rounded-lg" resizeMode="cover" />
+              ) : (
+                <Text className="text-gray-600 font-semibold">{uploadingImage ? 'Opening gallery...' : 'Pick image from device'}</Text>
+              )}
+            </TouchableOpacity>
+            {selectedImageUri ? (
+              <TouchableOpacity className="mt-2 self-start" onPress={() => setSelectedImageUri('')}>
+                <Text className="text-red-500 font-semibold">Remove image</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
