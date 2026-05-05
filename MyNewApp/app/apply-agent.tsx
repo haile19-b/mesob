@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiClient } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { agentService } from '../services/agent.service';
+import { getApiErrorMessage } from '../lib/api-error';
 
 export default function ApplyAgentScreen() {
   const router = useRouter();
@@ -13,6 +14,12 @@ export default function ApplyAgentScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleApply = async () => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please login first.');
+      router.replace('/login' as any);
+      return;
+    }
+
     if (!accountNumber) {
       Alert.alert('Error', 'Please provide an account number for payouts.');
       return;
@@ -23,21 +30,17 @@ export default function ApplyAgentScreen() {
       const payload = {
         accountNumber,
         workingHours: [
-          { day: 'Monday', startTime: '08:00', endTime: '18:00' },
-          { day: 'Tuesday', startTime: '08:00', endTime: '18:00' },
-        ]
+          { start: '08:00', end: '18:00' },
+        ],
       };
-      
-      // await apiClient.post('/agents/apply', payload);
-      
-      // Mock Request
-      await new Promise(r => setTimeout(r, 1000));
-      
+
+      await agentService.apply(payload);
+      await useAuthStore.getState().refreshUser();
       Alert.alert('Success', 'Your application has been submitted and is pending admin approval.', [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit application. Please try again.');
+    } catch (err) {
+      Alert.alert('Error', getApiErrorMessage(err, 'Failed to submit application. Please try again.'));
     } finally {
       setLoading(false);
     }

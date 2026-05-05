@@ -1,35 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { apiClient } from '../../api/client';
+import { vendorService } from '../../services/vendor.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Vendor } from '../../types/domain';
+import { getApiErrorMessage } from '../../lib/api-error';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [vendors, setVendors] = useState<any[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVendors();
   }, []);
 
   const fetchVendors = async () => {
+    setError(null);
+    setLoading(true);
     try {
-      const res = await apiClient.get('/vendors');
-      setVendors(res.data);
-    } catch (error) {
-      console.error('Error fetching vendors', error);
-      // Mock data in case backend is not running
-      setVendors([
-        { id: '1', name: 'Main Campus Cafeteria', location: 'Building A', phone: '123-456-7890' },
-        { id: '2', name: 'Science Lounge Cafe', location: 'Building C', phone: '987-654-3210' },
-      ]);
+      const data = await vendorService.getAllVendors();
+      setVendors(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load vendors.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const renderVendor = ({ item }: { item: any }) => (
+  const renderVendor = ({ item }: { item: Vendor }) => (
     <TouchableOpacity 
       className="bg-white rounded-2xl mb-4 shadow-sm overflow-hidden border border-gray-100"
       onPress={() => router.push(`/vendor/${item.id}` as any)}
@@ -56,6 +56,17 @@ export default function HomeScreen() {
       {loading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#f97316" />
+        </View>
+      ) : error ? (
+        <View className="flex-1 justify-center items-center px-6">
+          <Text className="text-center text-red-500">{error}</Text>
+          <TouchableOpacity className="mt-4 bg-orange-500 px-5 py-3 rounded-xl" onPress={fetchVendors}>
+            <Text className="text-white font-semibold">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : vendors.length === 0 ? (
+        <View className="flex-1 justify-center items-center px-6">
+          <Text className="text-gray-500 text-center">No vendors available yet.</Text>
         </View>
       ) : (
         <FlatList

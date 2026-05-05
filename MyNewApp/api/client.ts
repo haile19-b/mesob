@@ -1,11 +1,11 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// We'll use your local backend URL for development.
-// Since you're using Expo, you can use your machine's local IP or localhost.
-// Wait, for Android emulator it's 10.0.2.2, for iOS it's localhost.
-// We'll define a constant for it. Replace with your actual backend IP if testing on a physical device.
-const API_URL = 'http://localhost:5000/api';
+import { Platform } from 'react-native';
+
+// Dynamically use localhost for iOS/Web and 10.0.2.2 for Android emulator
+const LOCAL_API = Platform.OS === 'android' ? 'http://10.0.2.2:5000/api' : 'http://localhost:5000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || LOCAL_API;
 
 export const apiClient = axios.create({
   baseURL: API_URL,

@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
-import { apiClient } from '../api/client';
+import { authService } from '../services/auth.service';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { getApiErrorMessage } from '../lib/api-error';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,24 +25,12 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // In a real app, you would uncomment this:
-      /*
-      const res = await apiClient.post('/auth/login', { phone, password });
-      await login(res.data.token, res.data.user);
-      */
-      
-      // Mock Login
-      await new Promise(r => setTimeout(r, 1000));
-      await login('fake-jwt-token', {
-        id: 'user-1',
-        name: 'John Doe',
-        phone: phone,
-        roles: ['USER']
-      });
+      const res = await authService.login(phone, password);
+      await login(res.token, res.user);
 
       router.replace('/(tabs)' as any);
-    } catch (error: any) {
-      Alert.alert('Login Failed', error?.response?.data?.message || 'Invalid credentials');
+    } catch (error) {
+      Alert.alert('Login Failed', getApiErrorMessage(error, 'Invalid credentials'));
     } finally {
       setLoading(false);
     }
@@ -58,47 +50,42 @@ export default function LoginScreen() {
             <IconSymbol name="chevron.left" size={24} color="#000" />
           </TouchableOpacity>
 
-          <View className="mb-10 mt-12">
-            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Welcome Back</Text>
-            <Text className="text-gray-500 text-base">Sign in to continue ordering delicious campus food.</Text>
-          </View>
+          <Card>
+            <CardHeader>
+              <CardTitle>Welcome Back</CardTitle>
+              <CardDescription>Sign in to continue ordering delicious campus food.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <View className="space-y-4">
+                <Input
+                  label="Phone Number"
+                  placeholder="Enter your phone number"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                  autoCapitalize="none"
+                />
+                <View className="mt-4">
+                  <Input
+                    label="Password"
+                    placeholder="Enter your password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                </View>
+              </View>
 
-          <View className="space-y-4">
-            <View>
-              <Text className="text-sm font-bold text-gray-700 mb-1 ml-1">Phone Number</Text>
-              <TextInput
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-lg"
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View className="mt-4">
-              <Text className="text-sm font-bold text-gray-700 mb-1 ml-1">Password</Text>
-              <TextInput
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-lg"
-                placeholder="Enter your password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-          </View>
-
-          <Pressable 
-            className={`w-full bg-orange-500 py-4 rounded-2xl mt-10 shadow-lg shadow-orange-500/30 active:opacity-80 ${loading ? 'opacity-70' : ''}`}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-center font-bold text-lg">Sign In</Text>
-            )}
-          </Pressable>
+              <View className="mt-6">
+                <Button 
+                  title="Sign In" 
+                  onPress={handleLogin} 
+                  loading={loading} 
+                  variant="orange"
+                />
+              </View>
+            </CardContent>
+          </Card>
 
           <View className="flex-row justify-center mt-6">
             <Text className="text-gray-500">Don't have an account? </Text>

@@ -1,47 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiClient } from '../../api/client';
 import { useCartStore } from '../../store/cartStore';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import type { Meal, Vendor } from '../../types/domain';
+import { vendorService } from '../../services/vendor.service';
+import { getApiErrorMessage } from '../../lib/api-error';
 
 export default function VendorDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [vendor, setVendor] = useState<any>(null);
-  const [meals, setMeals] = useState<any[]>([]);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
-    fetchVendorDetails();
+    if (typeof id === 'string') {
+      fetchVendorDetails(id);
+    }
   }, [id]);
 
-  const fetchVendorDetails = async () => {
+  const fetchVendorDetails = async (vendorId: string) => {
+    setError(null);
+    setLoading(true);
     try {
-      // Mocking parallel requests. In real app, you fetch vendor and meals.
-      // const vendorRes = await apiClient.get(`/vendors/${id}`);
-      // const mealsRes = await apiClient.get(`/meals/vendor/${id}`);
-      // setVendor(vendorRes.data);
-      // setMeals(mealsRes.data);
-      
-      // Mock data
-      setVendor({ id: id as string, name: 'Campus Cafeteria', location: 'Building A' });
-      setMeals([
-        { id: 'm1', name: 'Cheeseburger', price: 5.99, description: 'Juicy beef patty with cheese' },
-        { id: 'm2', name: 'Caesar Salad', price: 4.50, description: 'Fresh romaine with caesar dressing' },
-        { id: 'm3', name: 'Fries', price: 2.99, description: 'Crispy golden fries' },
+      const [vendorData, mealData] = await Promise.all([
+        vendorService.getVendorDetails(vendorId),
+        vendorService.getVendorMeals(vendorId),
       ]);
-    } catch (error) {
-      console.error(error);
+      setVendor(vendorData);
+      setMeals(Array.isArray(mealData) ? mealData : []);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load vendor details.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddToCart = (meal: any) => {
+  const handleAddToCart = (meal: Meal) => {
     if (vendor) {
       addItem(
         { mealId: meal.id, name: meal.name, price: meal.price, quantity: 1 },
@@ -51,7 +50,7 @@ export default function VendorDetailsScreen() {
     }
   };
 
-  const renderMeal = ({ item }: { item: any }) => (
+  const renderMeal = ({ item }: { item: Meal }) => (
     <View className="flex-row bg-white rounded-2xl mb-4 p-4 shadow-sm border border-gray-100 items-center justify-between">
       <View className="flex-1 pr-4">
         <Text className="text-lg font-bold text-gray-900">{item.name}</Text>
@@ -71,6 +70,20 @@ export default function VendorDetailsScreen() {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
         <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center px-6 bg-gray-50">
+        <Text className="text-center text-red-500">{error}</Text>
+        <TouchableOpacity
+          className="mt-4 bg-orange-500 px-5 py-3 rounded-xl"
+          onPress={() => typeof id === 'string' && fetchVendorDetails(id)}
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -95,13 +108,17 @@ export default function VendorDetailsScreen() {
         <Text className="text-gray-500 mt-1 mb-6">{vendor?.location}</Text>
         
         <Text className="text-lg font-bold text-gray-900 mb-4">Menu Items</Text>
-        <FlatList
-          data={meals}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMeal}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
+        {meals.length === 0 ? (
+          <Text className="text-gray-500">This vendor has no meals listed yet.</Text>
+        ) : (
+          <FlatList
+            data={meals}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMeal}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        )}
       </View>
     </View>
   );

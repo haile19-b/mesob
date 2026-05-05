@@ -5,37 +5,49 @@ import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
+import { orderService } from '../services/order.service';
+import { Button } from '@/components/ui/button';
+import type { Agent } from '../types/domain';
+import { getApiErrorMessage } from '../lib/api-error';
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const { items, vendorId, vendorName, getTotal, orderType, setOrderType, clearCart } = useCartStore();
-  const { user } = useAuthStore();
-  const [agents, setAgents] = useState<any[]>([]);
+  const token = useAuthStore((state) => state.token);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (orderType === 'DELIVERY' && vendorId) {
+    if (items.length === 0 || !vendorId) {
+      router.replace('/(tabs)/cart' as any);
+      return;
+    }
+
+    if (!token) {
+      Alert.alert('Authentication Required', 'Please login before placing an order.', [
+        { text: 'Go to Login', onPress: () => router.replace('/login' as any) },
+      ]);
+      return;
+    }
+
+    if (orderType === 'DELIVERY') {
       fetchAgents();
     }
-  }, [orderType, vendorId]);
+  }, [orderType, vendorId, items.length, token]);
 
   const fetchAgents = async () => {
+    if (!vendorId) return;
     setLoadingAgents(true);
+    setAgentError(null);
     try {
-      // Mock fetch agents for this vendor
-      // const res = await apiClient.get(`/orders/vendors/${vendorId}/agents`);
-      // setAgents(res.data);
-
-      // Mock Data
-      await new Promise(r => setTimeout(r, 800));
-      setAgents([
-        { id: 'agent-1', name: 'Alice Smith', phone: '111-222-3333' },
-        { id: 'agent-2', name: 'Bob Johnson', phone: '444-555-6666' },
-      ]);
-    } catch (error) {
-      console.error(error);
+      const agentsList = await orderService.getAvailableAgents(vendorId);
+      setAgents(agentsList);
+    } catch (err) {
+      setAgents([]);
+      setAgentError(getApiErrorMessage(err, 'Could not load delivery agents.'));
     } finally {
       setLoadingAgents(false);
     }
@@ -50,22 +62,20 @@ export default function CheckoutScreen() {
     setPlacingOrder(true);
     try {
       const orderPayload = {
-        vendorId,
+        vendorId: vendorId!,
         orderType,
-        agentId: orderType === 'DELIVERY' ? selectedAgent : undefined,
-        items: items.map(i => ({ mealId: i.mealId, quantity: i.quantity }))
+        agentId: orderType === 'DELIVERY' ? selectedAgent! : undefined,
+        items: items.map((i) => ({ mealId: i.mealId, quantity: i.quantity })),
       };
 
-      // Mock place order
-      // await apiClient.post('/orders', orderPayload);
-      await new Promise(r => setTimeout(r, 1500));
+      await orderService.placeOrder(orderPayload);
 
       clearCart();
       Alert.alert('Success', 'Your order has been placed!', [
-        { text: 'View Orders', onPress: () => router.replace('/my-orders' as any) }
+        { text: 'View Orders', onPress: () => router.replace('/my-orders' as any) },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+    } catch (err) {
+      Alert.alert('Error', getApiErrorMessage(err, 'Failed to place order. Please try again.'));
     } finally {
       setPlacingOrder(false);
     }
@@ -113,6 +123,13 @@ export default function CheckoutScreen() {
             <Text className="text-lg font-bold text-gray-900 mb-3">Select Delivery Agent</Text>
             {loadingAgents ? (
               <ActivityIndicator color="#f97316" />
+            ) : agentError ? (
+              <View>
+                <Text className="text-red-500">{agentError}</Text>
+                <TouchableOpacity className="mt-3 bg-orange-500 px-4 py-2 rounded-lg self-start" onPress={fetchAgents}>
+                  <Text className="text-white font-semibold">Retry</Text>
+                </TouchableOpacity>
+              </View>
             ) : agents.length === 0 ? (
               <Text className="text-gray-500">No agents available for this vendor right now.</Text>
             ) : (
@@ -125,11 +142,11 @@ export default function CheckoutScreen() {
                     onPress={() => setSelectedAgent(item.id)}
                   >
                     <View className="w-12 h-12 bg-gray-200 rounded-full items-center justify-center mr-4">
-                      <Text className="font-bold text-gray-500">{item.name[0]}</Text>
+                      <Text className="font-bold text-gray-500">{item.user?.name?.[0] ?? 'A'}</Text>
                     </View>
                     <View>
-                      <Text className="font-bold text-gray-900 text-base">{item.name}</Text>
-                      <Text className="text-gray-500 text-xs">Available Now</Text>
+                      <Text className="font-bold text-gray-900 text-base">{item.user?.name ?? 'Agent'}</Text>
+                      <Text className="text-gray-500 text-xs">{item.user?.phone ?? 'Available now'}</Text>
                     </View>
                   </TouchableOpacity>
                 )}
@@ -140,17 +157,13 @@ export default function CheckoutScreen() {
       </View>
 
       <View className="bg-white p-6 rounded-t-3xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <TouchableOpacity
-          className={`bg-orange-500 py-4 rounded-2xl items-center shadow-lg shadow-orange-500/30 ${placingOrder || (orderType === 'DELIVERY' && !selectedAgent) ? 'opacity-50' : ''}`}
+        <Button 
+          title={`Place Order - $${getTotal().toFixed(2)}`}
+          variant="orange"
           onPress={handlePlaceOrder}
-          disabled={placingOrder || (orderType === 'DELIVERY' && !selectedAgent)}
-        >
-          {placingOrder ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-white font-bold text-lg">Place Order - ${getTotal().toFixed(2)}</Text>
-          )}
-        </TouchableOpacity>
+          loading={placingOrder}
+          disabled={orderType === 'DELIVERY' && !selectedAgent}
+        />
       </View>
     </SafeAreaView>
   );

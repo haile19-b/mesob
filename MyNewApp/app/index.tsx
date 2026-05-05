@@ -1,9 +1,12 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { Text, Pressable, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Button } from '@/components/ui/button';
 
 export default function WelcomeScreen() {
+  const router = useRouter();
+  
   return (
     <View className="flex-1 bg-gray-900">
       <StatusBar style="light" />
@@ -16,27 +19,23 @@ export default function WelcomeScreen() {
             Order delicious meals from your favorite campus cafeterias and lounges, delivered right to you.
           </Text>
 
-          <Link href="/(tabs)" asChild>
-            <Pressable
-              className="w-full bg-orange-500 py-4 rounded-2xl shadow-lg shadow-orange-500/50 mb-4 active:opacity-80"
-              onPress={() => console.log('Explore button clicked')}
-            >
-              <Text className="text-white text-center font-bold text-lg">
-                Explore Menu
-              </Text>
-            </Pressable>
-          </Link>
+          <View className="w-full mb-4">
+            <Button 
+              title="Explore Menu" 
+              variant="orange"
+              onPress={() => router.push('/(tabs)' as any)} 
+            />
+          </View>
 
-          <Link href="/login" asChild>
-            <Pressable
-              className="w-full bg-transparent border-2 border-white/20 py-4 rounded-2xl active:opacity-50"
-              onPress={() => console.log('Sign In button clicked')}
-            >
-              <Text className="text-white text-center font-bold text-lg">
-                Sign In
-              </Text>
-            </Pressable>
-          </Link>
+          <View className="w-full">
+            <Button 
+              title="Sign In" 
+              variant="outline"
+              className="border-white/20"
+              textClassName="text-white"
+              onPress={() => router.push('/login' as any)} 
+            />
+          </View>
         </View>
       </View>
     </View>

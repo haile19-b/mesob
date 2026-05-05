@@ -1,16 +1,10 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { apiClient } from '../api/client';
+import type { Role, User } from '../types/domain';
 
-export type Role = 'USER' | 'AGENT' | 'VENDOR' | 'ADMIN';
-
-export interface User {
-  id: string;
-  name: string;
-  phone: string;
-  roles: Role[];
-  // any other fields you want to track
-}
+const TOKEN_KEY = 'userToken';
+const USER_KEY = 'userData';
 
 interface AuthState {
   user: User | null;
@@ -28,49 +22,58 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
 
   login: async (token, user) => {
-    await SecureStore.setItemAsync('userToken', token);
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
     set({ token, user, isLoading: false });
   },
 
   logout: async () => {
-    await SecureStore.deleteItemAsync('userToken');
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(USER_KEY);
     set({ token: null, user: null, isLoading: false });
   },
 
   checkAuth: async () => {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
       if (token) {
-        // Here we could verify the token or fetch user profile
-        // For now, we will assume if we have a token, we are somewhat logged in.
-        // We will immediately try to fetch the updated user profile
-        set({ token, isLoading: true });
-        
-        try {
-          // This endpoint should return the current logged-in user profile, e.g., /api/auth/me
-          // We will use a mock placeholder or standard /me endpoint
-          const res = await apiClient.get('/users/me'); // Assuming you have a route to get current user
-          set({ user: res.data, isLoading: false });
-        } catch (e) {
-          // If token is invalid/expired
-          await SecureStore.deleteItemAsync('userToken');
-          set({ token: null, user: null, isLoading: false });
-        }
+        const rawUser = await SecureStore.getItemAsync(USER_KEY);
+        const parsedUser: User | null = rawUser ? JSON.parse(rawUser) : null;
+        set({ token, user: parsedUser, isLoading: false });
       } else {
-        set({ isLoading: false });
+        await SecureStore.deleteItemAsync(USER_KEY);
+        set({ token: null, user: null, isLoading: false });
       }
-    } catch (e) {
-      set({ isLoading: false });
+    } catch {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(USER_KEY);
+      set({ token: null, user: null, isLoading: false });
     }
   },
 
   refreshUser: async () => {
     try {
-      // Allows refreshing roles without logging out
-      const res = await apiClient.get('/users/me');
-      set({ user: res.data });
+      const state = useAuthStore.getState();
+      if (!state.user) {
+        set({ isLoading: false });
+        return;
+      }
+
+      const roleSet = new Set<Role>(state.user.roles ?? []);
+
+      try {
+        // If this endpoint is reachable, backend confirms this user has AGENT role.
+        await apiClient.get('/agents/me');
+        roleSet.add('AGENT');
+      } catch {
+        // Intentionally ignore; user may not be an agent.
+      }
+
+      const nextUser: User = { ...state.user, roles: Array.from(roleSet) };
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+      set({ user: nextUser });
     } catch (error) {
       console.error('Failed to refresh user', error);
     }
-  }
+  },
 }));

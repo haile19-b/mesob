@@ -1,46 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiClient } from '../api/client';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { orderService } from '../services/order.service';
+import type { Order } from '../types/domain';
+import { getApiErrorMessage } from '../lib/api-error';
 
 export default function MyOrdersScreen() {
   const router = useRouter();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
+    setError(null);
+    setLoading(true);
     try {
-      // const res = await apiClient.get('/orders/my-orders');
-      // setOrders(res.data);
-      
-      // Mock Data
-      await new Promise(r => setTimeout(r, 600));
-      setOrders([
-        {
-          id: 'ord-1',
-          vendor: { name: 'Campus Cafeteria' },
-          orderType: 'DELIVERY',
-          status: 'OUT_FOR_DELIVERY',
-          totalAmount: 14.50,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'ord-2',
-          vendor: { name: 'Science Lounge Cafe' },
-          orderType: 'DINE_IN',
-          status: 'COMPLETED',
-          totalAmount: 5.00,
-          createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-        }
-      ]);
-    } catch (error) {
-      console.error(error);
+      const data = await orderService.getMyOrders();
+      setOrders(data);
+    } catch (err) {
+      setOrders([]);
+      setError(getApiErrorMessage(err, 'Failed to load your orders.'));
     } finally {
       setLoading(false);
     }
@@ -48,12 +33,11 @@ export default function MyOrdersScreen() {
 
   const markCompleted = async (orderId: string) => {
     try {
-      // await apiClient.patch(`/orders/${orderId}/status`, { status: 'COMPLETED' });
+      await orderService.updateOrderStatus(orderId, 'COMPLETED');
       Alert.alert('Success', 'Order marked as completed! You can now rate your experience.');
-      // Refresh orders
-      fetchOrders();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update order status.');
+      await fetchOrders();
+    } catch (err) {
+      Alert.alert('Error', getApiErrorMessage(err, 'Failed to update order status.'));
     }
   };
 
@@ -68,14 +52,18 @@ export default function MyOrdersScreen() {
     }
   };
 
-  const renderOrder = ({ item }: { item: any }) => (
+  const getOrderTotal = (order: Order): number => {
+    return (order.orderItems ?? []).reduce((sum, item) => sum + (item.price ?? 0) * item.quantity, 0);
+  };
+
+  const renderOrder = ({ item }: { item: Order }) => (
     <View className="bg-white p-5 rounded-2xl mb-4 shadow-sm border border-gray-100">
       <View className="flex-row justify-between items-start mb-3">
         <View>
-          <Text className="text-lg font-bold text-gray-900">{item.vendor.name}</Text>
+          <Text className="text-lg font-bold text-gray-900">{item.vendor?.name ?? 'Vendor'}</Text>
           <Text className="text-xs text-gray-400 mt-1">{new Date(item.createdAt).toLocaleString()}</Text>
         </View>
-        <Text className="text-lg font-extrabold text-orange-500">${item.totalAmount.toFixed(2)}</Text>
+        <Text className="text-lg font-extrabold text-orange-500">${getOrderTotal(item).toFixed(2)}</Text>
       </View>
       
       <View className="flex-row items-center justify-between mb-4 mt-2">
@@ -125,6 +113,13 @@ export default function MyOrdersScreen() {
       {loading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#f97316" />
+        </View>
+      ) : error ? (
+        <View className="flex-1 justify-center items-center px-6">
+          <Text className="text-red-500 text-center">{error}</Text>
+          <TouchableOpacity className="mt-4 bg-orange-500 px-5 py-3 rounded-xl" onPress={fetchOrders}>
+            <Text className="text-white font-semibold">Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : orders.length === 0 ? (
         <View className="flex-1 justify-center items-center px-6">

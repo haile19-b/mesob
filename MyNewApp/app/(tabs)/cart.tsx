@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function CartScreen() {
-  const { items, vendorName, getTotal, updateQuantity, removeItem, clearCart } = useCartStore();
+  const { items, vendorName, getTotal, updateQuantity, clearCart } = useCartStore();
   const { token } = useAuthStore();
   const router = useRouter();
 

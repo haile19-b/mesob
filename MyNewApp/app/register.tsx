@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
-import { apiClient } from '../api/client';
+import { authService } from '../services/auth.service';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { getApiErrorMessage } from '../lib/api-error';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -22,25 +26,13 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      // In a real app:
-      /*
-      await apiClient.post('/auth/register', { name, phone, password });
-      const res = await apiClient.post('/auth/login', { phone, password });
-      await login(res.data.token, res.data.user);
-      */
-      
-      // Mock Register
-      await new Promise(r => setTimeout(r, 1000));
-      await login('fake-jwt-token', {
-        id: 'user-1',
-        name,
-        phone,
-        roles: ['USER']
-      });
+      await authService.register(name, phone, password);
+      const res = await authService.login(phone, password);
+      await login(res.token, res.user);
 
       router.replace('/(tabs)' as any);
-    } catch (error: any) {
-      Alert.alert('Registration Failed', error?.response?.data?.message || 'Something went wrong');
+    } catch (error) {
+      Alert.alert('Registration Failed', getApiErrorMessage(error, 'Something went wrong'));
     } finally {
       setLoading(false);
     }
@@ -60,57 +52,50 @@ export default function RegisterScreen() {
             <IconSymbol name="chevron.left" size={24} color="#000" />
           </TouchableOpacity>
 
-          <View className="mb-10 mt-12">
-            <Text className="text-4xl font-extrabold text-gray-900 mb-2">Create Account</Text>
-            <Text className="text-gray-500 text-base">Join Campus Bites to order your favorite meals.</Text>
-          </View>
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Account</CardTitle>
+              <CardDescription>Join Campus Bites to order your favorite meals.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <View className="space-y-4">
+                <Input
+                  label="Full Name"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChangeText={setName}
+                />
+                <View className="mt-4">
+                  <Input
+                    label="Phone Number"
+                    placeholder="Enter your phone number"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View className="mt-4">
+                  <Input
+                    label="Password"
+                    placeholder="Create a password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                </View>
+              </View>
 
-          <View className="space-y-4">
-            <View>
-              <Text className="text-sm font-bold text-gray-700 mb-1 ml-1">Full Name</Text>
-              <TextInput
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-lg"
-                placeholder="Enter your name"
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            <View className="mt-4">
-              <Text className="text-sm font-bold text-gray-700 mb-1 ml-1">Phone Number</Text>
-              <TextInput
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-lg"
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View className="mt-4">
-              <Text className="text-sm font-bold text-gray-700 mb-1 ml-1">Password</Text>
-              <TextInput
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-lg"
-                placeholder="Create a password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity 
-            className={`w-full bg-orange-500 py-4 rounded-2xl mt-10 shadow-lg shadow-orange-500/30 ${loading ? 'opacity-70' : ''}`}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-center font-bold text-lg">Sign Up</Text>
-            )}
-          </TouchableOpacity>
+              <View className="mt-6">
+                <Button 
+                  title="Sign Up" 
+                  onPress={handleRegister} 
+                  loading={loading} 
+                  variant="orange"
+                />
+              </View>
+            </CardContent>
+          </Card>
 
           <View className="flex-row justify-center mt-6">
             <Text className="text-gray-500">Already have an account? </Text>
