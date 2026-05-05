@@ -69,6 +69,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         // Intentionally ignore; user may not be an agent.
       }
 
+      try {
+        // If this endpoint is reachable, backend confirms this user has VENDOR role.
+        await apiClient.get('/vendors/mine');
+        roleSet.add('VENDOR');
+      } catch {
+        // Intentionally ignore; user may not be a vendor.
+      }
+
       const nextUser: User = { ...state.user, roles: Array.from(roleSet) };
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
       set({ user: nextUser });

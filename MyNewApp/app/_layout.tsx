@@ -35,7 +35,11 @@ export default function RootLayout() {
             <Stack.Screen name="checkout" options={{ headerShown: false }} />
             <Stack.Screen name="my-orders" options={{ headerShown: false }} />
             <Stack.Screen name="apply-agent" options={{ headerShown: false }} />
+            <Stack.Screen name="apply-vendor" options={{ headerShown: false }} />
             <Stack.Screen name="agent/index" options={{ headerShown: false }} />
+            <Stack.Screen name="vendor-dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="admin-dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="manage-meals" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
         )}

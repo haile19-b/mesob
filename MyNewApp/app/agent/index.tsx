@@ -6,13 +6,14 @@ import { useAuthStore } from '../../store/authStore';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { orderService } from '../../services/order.service';
 import { agentService } from '../../services/agent.service';
-import type { AgentStatus, Order } from '../../types/domain';
+import type { AgentStatus, Order, Vendor } from '../../types/domain';
 import { getApiErrorMessage } from '../../lib/api-error';
 
 export default function AgentDashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [agentStatus, setAgentStatus] = useState<AgentStatus>('OFFLINE');
+  const [servedVendors, setServedVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -32,6 +33,7 @@ export default function AgentDashboardScreen() {
     try {
       const [agentProfile, agentOrders] = await Promise.all([agentService.getMyProfile(), orderService.getAgentOrders()]);
       setAgentStatus(agentProfile.status);
+      setServedVendors(agentProfile.vendors ?? []);
       setOrders(agentOrders);
     } catch (err) {
       Alert.alert('Error', getApiErrorMessage(err, 'Failed to load agent dashboard.'));
@@ -96,6 +98,9 @@ export default function AgentDashboardScreen() {
           Ordered at {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
         </View>
+        <Text className="text-gray-500 mb-4">
+          Customer: {item.user?.name ?? 'Unknown'} ({item.user?.phone ?? 'N/A'})
+        </Text>
 
         {item.status === 'PENDING' && (
           <View className="flex-row space-x-3">
@@ -156,6 +161,9 @@ export default function AgentDashboardScreen() {
           <View className="px-6 py-4">
             <Text className="text-lg font-bold text-gray-900">Assigned Orders</Text>
             {!isWorking && <Text className="text-red-500 text-sm mt-1">You are offline. You won't receive new orders.</Text>}
+            <Text className="text-gray-500 text-sm mt-1">
+              Serving Vendors: {servedVendors.length > 0 ? servedVendors.map((v) => v.name).join(', ') : 'No linked vendors yet'}
+            </Text>
           </View>
           
           {orders.length === 0 ? (

@@ -20,6 +20,12 @@ export default function ApplyAgentScreen() {
       return;
     }
 
+    if (user.roles?.includes('AGENT')) {
+      Alert.alert('Already Agent', 'You already have agent access.');
+      router.replace('/agent' as any);
+      return;
+    }
+
     if (!accountNumber) {
       Alert.alert('Error', 'Please provide an account number for payouts.');
       return;

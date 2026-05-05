@@ -22,7 +22,7 @@ export default function ProfileScreen() {
         <IconSymbol name="person.crop.circle.badge.exclamationmark" size={80} color="#d1d5db" />
         <Text className="text-2xl font-bold text-gray-900 mt-6 text-center">You are not logged in</Text>
         <Text className="text-gray-500 text-center mt-2 mb-8">
-          Sign in to view your profile, track orders, and apply to be an agent.
+          Sign in to view your profile, track orders, and apply as agent or vendor.
         </Text>
         <TouchableOpacity 
           className="w-full bg-orange-500 py-4 rounded-2xl shadow-lg shadow-orange-500/30 mb-4"
@@ -77,6 +77,51 @@ export default function ProfileScreen() {
             <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
+          {/* Vendor Section */}
+          <Text className="text-sm font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">Vendor Services</Text>
+          {isVendor ? (
+            <>
+              <TouchableOpacity
+                className="flex-row items-center justify-between bg-white p-4 rounded-2xl mb-3 shadow-sm border border-gray-100"
+                onPress={() => router.push('/vendor-dashboard' as any)}
+              >
+                <View className="flex-row items-center space-x-3">
+                  <View className="w-10 h-10 bg-orange-50 rounded-full items-center justify-center">
+                    <IconSymbol name="building.2.fill" size={20} color="#f97316" />
+                  </View>
+                  <Text className="text-base font-semibold text-gray-800">Vendor Dashboard</Text>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-row items-center justify-between bg-white p-4 rounded-2xl mb-3 shadow-sm border border-gray-100"
+                onPress={() => router.push('/manage-meals' as any)}
+              >
+                <View className="flex-row items-center space-x-3">
+                  <View className="w-10 h-10 bg-amber-50 rounded-full items-center justify-center">
+                    <IconSymbol name="fork.knife" size={20} color="#d97706" />
+                  </View>
+                  <Text className="text-base font-semibold text-gray-800">Manage Meals</Text>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              className="flex-row items-center justify-between bg-white p-4 rounded-2xl mb-3 shadow-sm border border-gray-100"
+              onPress={() => router.push('/apply-vendor' as any)}
+            >
+              <View className="flex-row items-center space-x-3">
+                <View className="w-10 h-10 bg-orange-50 rounded-full items-center justify-center">
+                  <IconSymbol name="building.2" size={20} color="#f97316" />
+                </View>
+                <Text className="text-base font-semibold text-gray-800">Apply to be a Vendor</Text>
+              </View>
+              <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
+
           {/* Agent Section */}
           <Text className="text-sm font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">Agent Services</Text>
           {isAgent ? (
@@ -105,6 +150,24 @@ export default function ProfileScreen() {
               </View>
               <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
             </TouchableOpacity>
+          )}
+
+          {isAdmin && (
+            <>
+              <Text className="text-sm font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">Admin</Text>
+              <TouchableOpacity
+                className="flex-row items-center justify-between bg-white p-4 rounded-2xl mb-3 shadow-sm border border-gray-100"
+                onPress={() => router.push('/admin-dashboard' as any)}
+              >
+                <View className="flex-row items-center space-x-3">
+                  <View className="w-10 h-10 bg-red-50 rounded-full items-center justify-center">
+                    <IconSymbol name="shield.fill" size={20} color="#ef4444" />
+                  </View>
+                  <Text className="text-base font-semibold text-gray-800">Admin Dashboard</Text>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
           )}
 
           {/* Logout */}

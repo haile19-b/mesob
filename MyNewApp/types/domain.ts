@@ -25,6 +25,7 @@ export interface Vendor {
   location: string;
   phone?: string | null;
   isApproved?: boolean;
+  manager?: Pick<User, 'id' | 'name' | 'phone'>;
 }
 
 export interface Meal {
@@ -46,6 +47,7 @@ export interface Agent {
   accountNumber?: string;
   workingHours?: Array<{ start: string; end: string }>;
   user?: Pick<User, 'name' | 'phone'>;
+  vendors?: Vendor[];
 }
 
 export interface OrderItem {
@@ -66,10 +68,21 @@ export interface Order {
   createdAt: string;
   acceptedAt?: string | null;
   vendor?: Vendor;
+  user?: Pick<User, 'id' | 'name' | 'phone'>;
   orderItems?: OrderItem[];
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export interface AdminDashboardStats {
+  users: number;
+  vendors: number;
+  pendingVendors: number;
+  agents: number;
+  pendingAgents: number;
+  orders: number;
+  meals: number;
 }

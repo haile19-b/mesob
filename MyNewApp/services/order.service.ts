@@ -22,6 +22,11 @@ export const orderService = {
     return response.data;
   },
 
+  getVendorOrders: async (): Promise<Order[]> => {
+    const response = await apiClient.get<Order[]>('/orders/vendor');
+    return response.data;
+  },
+
   getAgentOrders: async (): Promise<Order[]> => {
     const response = await apiClient.get<Order[]>('/orders/agent');
     return response.data;
