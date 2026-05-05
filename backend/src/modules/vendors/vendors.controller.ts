@@ -25,6 +25,25 @@ export const VendorsController = {
     res.json(await VendorsService.get(req.params.id as string));
   },
 
+  async getMine(req: Request, res: Response) {
+    const managerId = (req as any).user.id as string;
+    const vendor = await VendorsService.getMyVendor(managerId);
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor profile not found" });
+    }
+    res.json(vendor);
+  },
+
+  async getMyAgents(req: Request, res: Response) {
+    try {
+      const managerId = (req as any).user.id as string;
+      const agents = await VendorsService.getMyVendorAgents(managerId);
+      res.json(agents);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  },
+
   async delete(req: Request, res: Response) {
     res.json(await VendorsService.delete(req.params.id as string));
   }

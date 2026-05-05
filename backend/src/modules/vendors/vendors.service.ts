@@ -16,6 +16,7 @@ export const VendorsService = {
 
   async list() {
     return prisma.vendor.findMany({
+      where: { isApproved: true },
       orderBy: { createdAt: "desc" },
       include: {
         manager: {
@@ -44,6 +45,34 @@ export const VendorsService = {
         orders: true
       }
     });
+  },
+
+  async getMyVendor(managerId: string) {
+    return prisma.vendor.findUnique({
+      where: { managerId },
+      include: {
+        meals: true,
+      },
+    });
+  },
+
+  async getMyVendorAgents(managerId: string) {
+    const vendor = await prisma.vendor.findUnique({
+      where: { managerId },
+      include: {
+        agents: {
+          include: {
+            user: { select: { id: true, name: true, phone: true } },
+          },
+        },
+      },
+    });
+
+    if (!vendor) {
+      throw new Error("Vendor profile not found");
+    }
+
+    return vendor.agents;
   },
 
   async delete(id: string) {

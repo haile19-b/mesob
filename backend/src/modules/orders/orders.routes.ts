@@ -165,6 +165,6 @@ router.patch("/:id/status", requireRole("VENDOR", "AGENT", "ADMIN", "USER"), Ord
  *       200:
  *         description: List of agents
  */
-router.get("/vendors/:vendorId/agents", requireRole("USER"), OrdersController.getVendorAgents);
+router.get("/vendors/:vendorId/agents", requireRole("USER", "VENDOR", "ADMIN"), OrdersController.getVendorAgents);
 
 export default router;

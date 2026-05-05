@@ -58,6 +58,8 @@ router.post("/", authMiddleware, VendorsController.create);
  *         description: Internal server error
  */
 router.get("/", VendorsController.list);
+router.get("/mine", authMiddleware, requireRole("VENDOR"), VendorsController.getMine);
+router.get("/mine/agents", authMiddleware, requireRole("VENDOR"), VendorsController.getMyAgents);
 
 /**
  * @swagger

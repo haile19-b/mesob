@@ -11,6 +11,8 @@ const router = Router();
  *   description: Administrative endpoints
  */
 
+router.get("/dashboard", authMiddleware, requireRole("ADMIN"), AdminController.getDashboardStats);
+
 /**
  * @swagger
  * /api/admin/vendors/{id}/approve:
@@ -30,6 +32,8 @@ const router = Router();
  *         description: Vendor approved successfully
  */
 router.put("/vendors/:id/approve", authMiddleware, requireRole("ADMIN"), AdminController.approveVendor);
+router.put("/vendors/:id/decline", authMiddleware, requireRole("ADMIN"), AdminController.declineVendor);
+router.get("/vendors", authMiddleware, requireRole("ADMIN"), AdminController.getVendors);
 
 /**
  * @swagger
@@ -50,6 +54,7 @@ router.put("/vendors/:id/approve", authMiddleware, requireRole("ADMIN"), AdminCo
  *         description: Agent approved successfully
  */
 router.put("/agents/:id/approve", authMiddleware, requireRole("ADMIN"), AdminController.approveAgent);
+router.put("/agents/:id/decline", authMiddleware, requireRole("ADMIN"), AdminController.declineAgent);
 
 /**
  * @swagger
