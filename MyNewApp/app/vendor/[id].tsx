@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCartStore } from '../../store/cartStore';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import type { Meal, Vendor } from '../../types/domain';
@@ -13,6 +13,7 @@ export default function VendorDetailsScreen() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const addItem = useCartStore((state) => state.addItem);
@@ -20,15 +21,32 @@ export default function VendorDetailsScreen() {
   const cartVendorId = useCartStore((state) => state.vendorId);
   const cartTotal = useCartStore((state) => state.getTotal());
 
-  useEffect(() => {
-    if (typeof id === 'string') {
-      fetchVendorDetails(id);
-    }
-  }, [id]);
+  const vendorId = typeof id === 'string' ? id : null;
 
-  const fetchVendorDetails = async (vendorId: string) => {
+  useFocusEffect(
+    useCallback(() => {
+      if (!vendorId) return;
+
+      fetchVendorDetails(vendorId, { showLoading: !vendor, showRefreshing: false });
+
+      const intervalId = setInterval(() => {
+        refreshMeals(vendorId);
+      }, 10000);
+
+      return () => clearInterval(intervalId);
+    }, [vendorId, vendor])
+  );
+
+  const fetchVendorDetails = async (
+    vendorId: string,
+    options?: { showLoading?: boolean; showRefreshing?: boolean }
+  ) => {
     setError(null);
-    setLoading(true);
+    const showLoading = options?.showLoading ?? true;
+    const showRefreshing = options?.showRefreshing ?? false;
+
+    if (showLoading) setLoading(true);
+    if (showRefreshing) setRefreshing(true);
     try {
       const [vendorData, mealData] = await Promise.all([
         vendorService.getVendorDetails(vendorId),
@@ -39,7 +57,17 @@ export default function VendorDetailsScreen() {
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to load vendor details.'));
     } finally {
-      setLoading(false);
+      if (showRefreshing) setRefreshing(false);
+      if (showLoading) setLoading(false);
+    }
+  };
+
+  const refreshMeals = async (vendorId: string) => {
+    try {
+      const mealData = await vendorService.getVendorMeals(vendorId);
+      setMeals(Array.isArray(mealData) ? mealData : []);
+    } catch {
+      return;
     }
   };
 
@@ -106,7 +134,7 @@ export default function VendorDetailsScreen() {
         <Text className="text-center text-red-500">{error}</Text>
         <TouchableOpacity
           className="mt-4 bg-orange-500 px-5 py-3 rounded-xl"
-          onPress={() => typeof id === 'string' && fetchVendorDetails(id)}
+          onPress={() => vendorId && fetchVendorDetails(vendorId)}
         >
           <Text className="text-white font-semibold">Retry</Text>
         </TouchableOpacity>
@@ -149,6 +177,10 @@ export default function VendorDetailsScreen() {
             renderItem={renderMeal}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
+            refreshing={refreshing}
+            onRefresh={() =>
+              vendorId ? fetchVendorDetails(vendorId, { showLoading: false, showRefreshing: true }) : undefined
+            }
           />
         )}
       </View>

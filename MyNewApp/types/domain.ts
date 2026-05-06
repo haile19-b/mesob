@@ -24,6 +24,7 @@ export interface Vendor {
   name: string;
   location: string;
   phone?: string | null;
+  imageUrl?: string | null;
   isApproved?: boolean;
   manager?: Pick<User, 'id' | 'name' | 'phone'>;
 }

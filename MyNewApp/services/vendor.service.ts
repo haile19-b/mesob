@@ -17,8 +17,20 @@ export const vendorService = {
     return response.data;
   },
 
-  applyAsVendor: async (payload: { name: string; location: string; phone?: string }) => {
-    const response = await apiClient.post<Vendor>('/vendors', payload);
+  applyAsVendor: async (payload: { name: string; location: string; phone?: string; imageUri: string }) => {
+    const filename = payload.imageUri.split('/').pop() || `vendor-${Date.now()}.jpg`;
+    const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+    const formData = new FormData();
+    formData.append('name', payload.name);
+    formData.append('location', payload.location);
+    if (payload.phone) formData.append('phone', payload.phone);
+    formData.append('image', { uri: payload.imageUri, name: filename, type: mime } as any);
+
+    const response = await apiClient.post<Vendor>('/vendors', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 

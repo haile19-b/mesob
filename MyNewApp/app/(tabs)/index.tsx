@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, ImageBackground } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { vendorService } from '../../services/vendor.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Vendor } from '../../types/domain';
@@ -13,9 +13,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchVendors();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchVendors();
+    }, [])
+  );
 
   const fetchVendors = async () => {
     setError(null);
@@ -36,12 +38,22 @@ export default function HomeScreen() {
       onPress={() => router.push(`/vendor/${item.id}` as any)}
       activeOpacity={0.8}
     >
-      <View className="h-36 bg-orange-500 px-5 py-4 justify-between">
-        <View className="self-start bg-white/20 px-3 py-1 rounded-full">
-          <Text className="text-white text-xs font-semibold">Campus Vendor</Text>
+      {item.imageUrl ? (
+        <ImageBackground source={{ uri: item.imageUrl }} className="h-36 px-5 py-4 justify-between" imageStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+          <View className="absolute inset-0 bg-black/30" />
+          <View className="self-start bg-white/25 px-3 py-1 rounded-full">
+            <Text className="text-white text-xs font-semibold">Campus Vendor</Text>
+          </View>
+          <Text className="text-white text-2xl font-extrabold">{item.name}</Text>
+        </ImageBackground>
+      ) : (
+        <View className="h-36 bg-orange-500 px-5 py-4 justify-between">
+          <View className="self-start bg-white/20 px-3 py-1 rounded-full">
+            <Text className="text-white text-xs font-semibold">Campus Vendor</Text>
+          </View>
+          <Text className="text-white text-2xl font-extrabold">{item.name}</Text>
         </View>
-        <Text className="text-white text-2xl font-extrabold">{item.name}</Text>
-      </View>
+      )}
       <View className="p-5">
         <View className="flex-row items-center justify-between">
           <Text className="text-sm text-gray-500 flex-1">{item.location}</Text>

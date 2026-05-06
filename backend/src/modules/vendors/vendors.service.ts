@@ -1,13 +1,27 @@
 import { prisma } from "../../lib/prisma";
 
+type CreateVendorInput = {
+  name: string;
+  location: string;
+  phone?: string;
+  imageFilename: string;
+  managerId: string;
+};
+
+type UpdateVendorInput = {
+  name?: string;
+  location?: string;
+  phone?: string;
+};
+
 export const VendorsService = {
-  async create(data: any) {
+  async create(data: CreateVendorInput) {
     return prisma.vendor.create({
       data
     });
   },
 
-  async update(id: string, data: any) {
+  async update(id: string, data: UpdateVendorInput) {
     return prisma.vendor.update({
       where: { id },
       data

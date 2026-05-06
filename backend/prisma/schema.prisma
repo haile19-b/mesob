@@ -62,6 +62,7 @@ model Vendor {
   name     String
   location String
   phone    String?
+  imageFilename String?
 
   managerId String @unique
   manager   User   @relation("ManagerVendors", fields: [managerId], references: [id])

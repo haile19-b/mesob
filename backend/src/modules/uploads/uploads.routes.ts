@@ -31,7 +31,7 @@ const upload = multer({
 router.post(
   "/image",
   authMiddleware,
-  requireRole("ADMIN", "VENDOR"),
+  requireRole("USER", "AGENT", "ADMIN", "VENDOR"),
   upload.single("image"),
   (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Image file is required" });
