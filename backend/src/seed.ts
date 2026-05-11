@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from './lib/prisma';
-import { Role } from './generated/prisma/client';
+import { Role } from '@prisma/client';
 
 async function main() {
   console.log(`Start seeding ...`);

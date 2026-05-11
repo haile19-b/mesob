@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { OrderType, OrderStatus } from "../../generated/prisma/client";
+import { OrderType, OrderStatus } from "@prisma/client";
 
 export const CreateOrderSchema = z.object({
   vendorId: z.string().uuid(),

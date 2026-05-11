@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { OrderType, OrderStatus, Role } from "../../generated/prisma/client";
+import { OrderType, OrderStatus, Role } from "@prisma/client";
 import { CreateOrderSchema, UpdateOrderStatusSchema } from "./orders.schema";
 import { z } from "zod";
 

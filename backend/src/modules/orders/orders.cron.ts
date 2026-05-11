@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { prisma } from "../../lib/prisma";
-import { OrderStatus } from "../../generated/prisma/client";
+import { OrderStatus } from "@prisma/client";
 
 export function initOrderCron() {
   // Run every minute
