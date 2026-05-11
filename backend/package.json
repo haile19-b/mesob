@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/src/server.js",
     "dev": "nodemon --exec tsx src/server.ts",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "postinstall": "npx prisma generate",
+    "migrate": "npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
